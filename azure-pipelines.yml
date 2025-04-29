@@ -1,0 +1,106 @@
+trigger:
+  - main
+
+variables:
+  - group: chat-app-variables
+  - name: DOCKER_REGISTRY
+    value: 'gcr.io/$(GCP_PROJECT_ID)'
+
+stages:
+  - stage: Build
+    jobs:
+      - job: BuildAndTest
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          # Install dependencies and run tests for frontend
+          - task: NodeTool@0
+            inputs:
+              versionSpec: '18.x'
+            displayName: 'Install Node.js'
+
+          - script: |
+              cd frontend
+              npm ci
+              npm run lint
+              npm run test
+              npm run build
+            displayName: 'Build and test frontend'
+
+          # Install dependencies and run tests for backend
+          - script: |
+              cd backend
+              npm ci
+              npm run lint
+              npm run test
+              npm run build
+            displayName: 'Build and test backend'
+
+          # Build and push Docker images
+          - task: Docker@2
+            inputs:
+              command: buildAndPush
+              repository: '$(DOCKER_REGISTRY)/frontend'
+              dockerfile: 'frontend/Dockerfile'
+              tags: |
+                $(Build.BuildId)
+                latest
+            displayName: 'Build and push frontend image'
+
+          - task: Docker@2
+            inputs:
+              command: buildAndPush
+              repository: '$(DOCKER_REGISTRY)/backend'
+              dockerfile: 'backend/Dockerfile'
+              tags: |
+                $(Build.BuildId)
+                latest
+            displayName: 'Build and push backend image'
+
+  - stage: Deploy
+    dependsOn: Build
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - job: DeployToGKE
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          # Install and configure Google Cloud SDK
+          - task: GoogleCloudSDK@0
+            inputs:
+              version: 'latest'
+              projectId: $(GCP_PROJECT_ID)
+              authenticationType: 'serviceAccount'
+              credentialsJSON: $(GCP_CREDENTIALS)
+
+          # Deploy to GKE
+          - script: |
+              gcloud container clusters get-credentials $(GKE_CLUSTER_NAME) --region $(GCP_REGION)
+              
+              # Update Kubernetes manifests with new image tags
+              sed -i 's|image: frontend:latest|image: $(DOCKER_REGISTRY)/frontend:$(Build.BuildId)|' kubernetes/frontend.yaml
+              sed -i 's|image: backend:latest|image: $(DOCKER_REGISTRY)/backend:$(Build.BuildId)|' kubernetes/backend.yaml
+              
+              # Apply Kubernetes manifests
+              kubectl apply -f kubernetes/
+            displayName: 'Deploy to GKE'
+
+  - stage: Verify
+    dependsOn: Deploy
+    jobs:
+      - job: HealthCheck
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - script: |
+              # Wait for services to be ready
+              kubectl wait --for=condition=available --timeout=300s deployment/frontend deployment/backend
+              
+              # Get service endpoints
+              FRONTEND_IP=$(kubectl get service frontend -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+              BACKEND_IP=$(kubectl get service backend -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+              
+              # Verify health endpoints
+              curl -f http://$FRONTEND_IP/health
+              curl -f http://$BACKEND_IP/api/health
+            displayName: 'Verify deployment' 

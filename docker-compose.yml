@@ -1,56 +1,70 @@
-version: '3.8'
-
 services:
   frontend:
-    build: 
+    build:
       context: ./frontend
-      dockerfile: Dockerfile
+      target: development
     ports:
       - "3000:3000"
     volumes:
       - ./frontend:/app
       - /app/node_modules
     environment:
-      - VITE_API_URL=http://localhost:5000
+      - VITE_API_URL=http://backend:5000
+      - VITE_WS_URL=ws://backend:5000
       - VITE_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-      - VITE_GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - VITE_DEBUG_MODE=${DEBUG_MODE}
+      - NODE_ENV=development
     depends_on:
       - backend
+    networks:
+      - app-network
 
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile
+      target: development
     ports:
       - "5000:5000"
     volumes:
       - ./backend:/app
       - /app/node_modules
     environment:
-      - MONGODB_URI=mongodb://mongo:27017/chat_app
-      - RABBITMQ_URL=amqp://rabbitmq
+      - NODE_ENV=development
+      - PORT=5000
+      - MONGODB_URI=mongodb://mongodb:27017/chat
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=${JWT_SECRET}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-      - JWT_SECRET=${JWT_SECRET}
+      - DEBUG_MODE=${DEBUG_MODE}
     depends_on:
-      - mongo
-      - rabbitmq
+      - mongodb
+      - redis
+    networks:
+      - app-network
 
-  mongo:
+  mongodb:
     image: mongo:latest
     ports:
       - "27017:27017"
     volumes:
       - mongodb_data:/data/db
+    networks:
+      - app-network
 
-  rabbitmq:
-    image: rabbitmq:3-management
+  redis:
+    image: redis:alpine
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      - "6379:6379"
     volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
+      - redis_data:/data
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
 
 volumes:
   mongodb_data:
-  rabbitmq_data: 
+  redis_data: 
