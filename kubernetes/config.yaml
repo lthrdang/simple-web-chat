@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: chat-config
+data:
+  api_url: "http://backend:5000"
+  ws_url: "ws://backend:5000"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mongodb-secret
+type: Opaque
+data:
+  uri: base64_encoded_mongodb_uri
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: redis-secret
+type: Opaque
+data:
+  url: base64_encoded_redis_url
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: jwt-secret
+type: Opaque
+data:
+  secret: base64_encoded_jwt_secret
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: google-oauth
+type: Opaque
+data:
+  client_id: base64_encoded_google_client_id
+  client_secret: base64_encoded_google_client_secret 

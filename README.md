@@ -1,159 +1,152 @@
-# Simple Web Chat Application
+# Simple Web Chat
 
-A real-time chat application built with React, Express, MongoDB, and Socket.IO.
+A production-grade chat application with compliance and security in mind. Built with React, Express, MongoDB, and WebSockets.
 
 ## Features
 
-- Google Authentication
-- Real-time messaging
-- User search
-- Online/offline status
-- Responsive design for all devices
-- Direct and group chat support
+- Google OAuth2 authentication with One Tap Sign-In
+- Real-time chat with WebSocket support
+- User presence and status indicators
+- Fuzzy search for users
+- 1:1 and group chat support
+- Responsive design (320px - 1440px)
+- Encrypted data storage
+- High-performance caching with Redis
+- Docker containerization for easy deployment
+- Development and production environments
+
+## Tech Stack
+
+- **Frontend**: 
+  - React.js (Vite)
+  - Tailwind CSS
+  - Google Sign-In API
+  - Socket.IO Client
+  - Zustand for state management
+- **Backend**: 
+  - Express.js (Node.js)
+  - TypeScript
+  - Socket.IO
+  - Google Auth Library
+  - JWT for authentication
+- **Database**: MongoDB (encrypted at rest)
+- **Real-time**: WebSockets
+- **Cache**: Redis
+- **Containerization**: Docker Compose
+- **Infrastructure**: Terraform (GCP GKE)
+- **CI/CD**: Azure DevOps
 
 ## Prerequisites
 
-- Node.js (v18 or higher)
+- Node.js 18+
 - Docker and Docker Compose
-- Google Cloud Platform account with OAuth 2.0 credentials
-
-## Setting Up Google OAuth2 Client ID
-
-1. Go to the [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select an existing one
-3. Navigate to "APIs & Services" > "Credentials"
-4. Click "Create Credentials" and select "OAuth client ID"
-5. If this is your first time, you'll need to configure the consent screen:
-   - Click "Configure Consent Screen"
-   - Select "External" user type (unless you are in a Google Workspace organization)
-   - Fill in the required application information (name, support email, etc.)
-   - Add the "/auth/userinfo.email" and "/auth/userinfo.profile" scopes
-   - Add any test users for development
-   - Complete the setup
-
-6. Return to "Credentials" and click "Create Credentials" > "OAuth client ID"
-7. Choose "Web application" as the application type
-8. Give your client a name (e.g., "Chat App")
-9. Add authorized JavaScript origins:
-   - For development: `http://localhost:3000`
-   - For production: your production domain
-
-10. Add authorized redirect URIs:
-    - For development: `http://localhost:3000`
-    - For production: your production domain
-
-11. Click "Create"
-12. You will receive your Client ID and Client Secret
-13. Copy these values to your `.env` file:
-    ```
-    GOOGLE_CLIENT_ID=your_client_id_here
-    GOOGLE_CLIENT_SECRET=your_client_secret_here
-    ```
-
-> **Note**: For security reasons, never commit your `.env` file to your repository!
+- Google Cloud Platform account
+- Azure DevOps account
+- MongoDB Atlas account (or local MongoDB)
 
 ## Environment Variables
 
-Create a `.env` file in the root directory with the following variables:
+Create a `.env` file in the root directory:
 
-```env
-# Google OAuth
+```
+# Frontend
+VITE_API_URL=http://localhost:5000
+VITE_WS_URL=ws://localhost:5000
+VITE_GOOGLE_CLIENT_ID=your_google_client_id
+
+# Backend
+PORT=5000
+MONGODB_URI=mongodb://localhost:27017/chat
+REDIS_URL=redis://localhost:6379
 GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret
-
-# JWT
 JWT_SECRET=your_jwt_secret
-
-# MongoDB
-MONGODB_URI=mongodb://mongo:27017/chat_app
-
-# RabbitMQ
-RABBITMQ_URL=amqp://rabbitmq
 ```
 
-## Getting Started
+## Google OAuth Configuration
+
+1. Go to the Google Cloud Console (https://console.cloud.google.com)
+2. Create a new project or select an existing one
+3. Enable the Google Sign-In API
+4. Create OAuth 2.0 credentials
+5. Add authorized JavaScript origins:
+   - `http://localhost:3000`
+   - `http://127.0.0.1:3000`
+   - `http://localhost`
+   - `http://127.0.0.1`
+6. Add authorized redirect URIs:
+   - `http://localhost:3000`
+   - `http://localhost:5000/api/auth/google/callback`
+
+## Development Setup
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
+git clone https://github.com/yourusername/simple-web-chat.git
 cd simple-web-chat
 ```
 
-2. Start the application using Docker Compose:
+2. Set up environment variables:
 ```bash
-docker-compose up --build
+# Copy the example .env file
+cp .env.example .env
+# Edit the .env file with your credentials
 ```
 
-3. Access the application:
+3. Start development servers:
+```bash
+# Using Docker Compose (recommended)
+docker-compose up
+
+# Or run services separately
+# Frontend
+cd frontend
+npm run dev
+
+# Backend
+cd backend
+npm run dev
+```
+
+4. Access the application:
 - Frontend: http://localhost:3000
 - Backend API: http://localhost:5000
-- RabbitMQ Management: http://localhost:15672 (guest/guest)
 
-## Development
+## Security Checklist
 
-### Frontend
+- [ ] HTTPS enabled in production
+- [ ] Input sanitization implemented
+- [ ] Rate limiting configured
+- [ ] CORS properly configured
+- [ ] JWT token validation
+- [ ] Data encryption at rest
+- [ ] Secure WebSocket connections
+- [ ] Environment variables properly set
+- [ ] Regular security audits
+- [ ] GDPR compliance measures
+- [ ] Google OAuth properly configured
+- [ ] Secure session management
 
-The frontend is built with React and Vite. To run it in development mode:
+## Compliance Considerations
 
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-### Backend
-
-The backend is built with Express.js. To run it in development mode:
-
-```bash
-cd backend
-npm install
-npm run dev
-```
-
-## API Endpoints
-
-### Authentication
-- `POST /api/auth/google` - Google OAuth login
-
-### Users
-- `GET /api/users/profile` - Get user profile
-- `PUT /api/users/profile` - Update user profile
-- `GET /api/users/search` - Search users
-
-### Chats
-- `GET /api/chats` - Get all chats
-- `POST /api/chats` - Create new chat
-- `GET /api/chats/:chatId/messages` - Get chat messages
-- `POST /api/chats/:chatId/messages` - Send message
-
-## Technologies Used
-
-- Frontend:
-  - React
-  - Material-UI
-  - Socket.IO Client
-  - Axios
-
-- Backend:
-  - Express.js
-  - Socket.IO
-  - MongoDB
-  - RabbitMQ
-  - JWT Authentication
-
-- Infrastructure:
-  - Docker
-  - Docker Compose
+- Data encryption at rest and in transit
+- User consent management
+- Data retention policies
+- Privacy policy implementation
+- GDPR compliance measures
+- Regular security audits
+- Data backup procedures
+- OAuth2 security best practices
+- Session management security
 
 ## Contributing
 
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
 
 ## License
 
-This project is licensed under the MIT License. 
+MIT License - see LICENSE file for details 
